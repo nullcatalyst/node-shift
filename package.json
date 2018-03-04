@@ -1,0 +1,27 @@
+{
+  "name": "shift",
+  "version": "0.0.1",
+  "description": "",
+  "license": "ISC",
+  "main": "index.js",
+  "contributors": [
+    {
+      "name": "Scott Bennett",
+      "email": "scottbennett912@gmail.com"
+    }
+  ],
+  "scripts": {
+    "build": "tspegjs --custom-header-file src/parser.header.ts -o src/parser.ts src/shift.pegjs && tsc -p .",
+    "start": "LD_LIBRARY_PATH=/usr/local/Cellar/llvm/5.0.1/lib node lib/index.js test.shift",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "llvmc": "github:nullcatalyst/node-llvmc",
+    "pegjs": "^0.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^9.4.6",
+    "ts-pegjs": "^0.1.13",
+    "typescript": "^2.7.2"
+  }
+}

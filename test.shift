@@ -1,0 +1,8 @@
+function test(): Int32 {
+    var j = 0
+    while false {
+        j
+    } else {
+        j + 5
+    }
+}

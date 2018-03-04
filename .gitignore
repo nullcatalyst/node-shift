@@ -1,0 +1,10 @@
+# Nodejs
+/node_modules
+npm-debug.log
+
+# Targets
+/lib
+
+# Executables
+a.out
+out.bc
