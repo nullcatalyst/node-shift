@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "tspegjs --custom-header-file src/parser.header.ts -o src/parser.ts src/shift.pegjs && tsc -p .",
-    "start": "LD_LIBRARY_PATH=/usr/local/Cellar/llvm/5.0.1/lib node lib/index.js test.shift",
+    "start": "LD_LIBRARY_PATH=/usr/local/Cellar/llvm/5.0.1/lib node --expose-gc lib/index.js test.shift",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

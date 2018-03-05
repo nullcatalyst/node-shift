@@ -6,15 +6,16 @@ import {
 } from "./type";
 
 import {
-    ExprVar,
     ExprConstBool,
     ExprConstInt,
     ExprConstFloat,
-    ExprOpBin,
+    ExprDeclVar,
+    ExprDeclFunc,
+    ExprVar,
+    ExprCall,
     ExprCast,
+    ExprOpBin,
     ExprBlock,
     ExprIf,
     ExprWhile,
-    ExprDeclVar,
-    ExprDeclFunc,
 } from "./expr";

@@ -11,9 +11,10 @@ import { TypeFunc } from "../type/TypeFunc";
 import { Expr } from "../expr/Expr";
 
 export class Context {
-    private readonly _ctx: llvm.Context;
-    private readonly _mod: llvm.Module;
-    private readonly _bld: llvm.Builder;
+    private _ctx: llvm.Context;
+    private _mod: llvm.Module;
+    private _bld: llvm.Builder;
+    private _exe: llvm.ExecutionEngine | null;
 
     private _types: { [name: string]: Type };
     private _typeFuncs: MultiMap<Type[], TypeFunc>;
@@ -28,6 +29,7 @@ export class Context {
         this._ctx = llvm.Context.create();
         this._mod = llvm.Module.create(name, this._ctx);
         this._bld = llvm.Builder.create(this._ctx);
+        this._exe = null;
 
         this._types = {};
         this._typeFuncs = new MultiMap();
@@ -41,6 +43,25 @@ export class Context {
         this._types["Bool"] = this._typeBool;
         this._types["Int32"] = this._typeInt32;
         this._types["Float32"] = this._typeFloat32;
+    }
+
+    free(): void {
+        // Free the builder
+        this._bld.free();
+        this._bld = null;
+
+        // Free the executable engine
+        if (this._exe !== null) {
+            this._exe.free();
+            this._exe = null;
+        }
+
+        // Free the module
+        this._mod.free();
+        this._mod = null;
+
+        // Dereference the context
+        this._ctx = null;
     }
 
     createLLVMVoidType(): llvm.Type { return llvm.VoidType.create(this._ctx); }
@@ -73,7 +94,6 @@ export class Context {
     createFunction(name: string, type: TypeFunc): llvm.Function { return this._mod.addFunction(name, type.getLLVM()); }
     appendBlockToFunction(name: string, func: llvm.Function): llvm.BasicBlock { return func.appendBasicBlock(name, this._ctx); }
 
-
     getExprs(): Expr[] {
         return this._exprs.slice();
     }
@@ -82,21 +102,44 @@ export class Context {
         this._exprs.push(expr);
     }
 
-    validate(): void {
+    initTarget(): this {
+        llvm.linkInMCJIT();
+        llvm.linkInInterpreter();
+        llvm.initX86Target();
+
+        // Get the target triple and data layout for the default target (i.e., the
+        // target for the current host machine).
+        let targetTriple = llvm.TargetMachine.getDefaultTargetTriple();
+        let target = llvm.Target.getFromTriple(targetTriple);
+        let targetMachine = llvm.TargetMachine.create(target, targetTriple);
+        let dataLayout = targetMachine.createDataLayout();
+
+        // Set the target triple and data layout for the module.
+        this._mod.setTarget(targetTriple);
+        this._mod.setDataLayout(dataLayout.toString());
+
+        return this;
+    }
+
+    validate(): this {
         const scope = new Scope(null, true);
         for (let expr of this._exprs) {
             expr.validate(scope);
         }
+
+        return this;
     }
 
-    build(): void {
+    build(): this {
         const builder = llvm.Builder.create(this._ctx);
         for (let expr of this._exprs) {
             expr.build(builder);
         }
+
+        return this;
     }
 
-    optimize(): void {
+    optimize(): this {
         const fpass = llvm.FunctionPassManager.create(this._mod)
             .addPromoteMemoryToRegisterPass()
             .addInstructionCombiningPass()
@@ -109,11 +152,25 @@ export class Context {
             fpass.run(func);
         }
         fpass.finalize();
+        fpass.free();
 
-        // const mpass = llvm.ModulePassManager.create()
-        //     .addConstantMergePass();
+        const mpass = llvm.ModulePassManager.create()
+            .addConstantMergePass()
+            .addFunctionInliningPass()
+            .addGlobalDCEPass();
 
-        // mpass.run(this._mod);
+        mpass.run(this._mod);
+        mpass.free();
+
+        return this;
+    }
+
+    run(funcName: string, ...args: llvm.GenericValue[]): llvm.GenericValue {
+        if (this._exe === null) {
+            this._exe = llvm.ExecutionEngine.create(this._mod);
+        }
+
+        return this._exe.run(this.findFunction(funcName), args);
     }
 
     print() {

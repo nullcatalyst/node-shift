@@ -71,14 +71,26 @@ ExprAdd
     / ExprMul
 
 ExprMul
-    = head:ExprAtom tail:(_ ("*" / "/" / "%") _ ExprAtom)+ {
+    = head:ExprCall tail:(_ ("*" / "/" / "%") _ ExprCall)+ {
         return lBinOp(head, tail, {
             "*": (lhs, rhs) => new ExprOpBin(_ctx, OpBin.Mul, lhs, rhs),
             "/": (lhs, rhs) => new ExprOpBin(_ctx, OpBin.Div, lhs, rhs),
             "%": (lhs, rhs) => new ExprOpBin(_ctx, OpBin.Rem, lhs, rhs),
         });
     }
-    / ExprAtom
+    / ExprCall
+
+ExprCall
+    = func:ExprMember _ "[" args:ExprCallArgs "]" { return new ExprCall(_ctx, func, args); }
+    / ExprMember
+
+ExprCallArgs
+    = _ head:Expr tail:(_ "," _ Expr)* _ { return [head, ...tail.map((val) => val[3])]; }
+    / _ { return []; }
+
+ExprMember
+    // = value:ExprAtom _ "." _ !Keyword name:Id
+    = ExprAtom
 
 ExprAtom
     = "(" _ expr:Expr _ ")" { return expr; }
@@ -101,11 +113,15 @@ ExprBlock
     = "{" exprs:ExprList "}" { return new ExprBlock(_ctx, exprs); }
 
 DeclFunc
-    = KeywordFunction name:(__ Id)? _ "(" _ ")" _ retType:(":" _ Type _)? "{" body:ExprList "}" {
+    = KeywordFunction name:(__ Id)? _ "[" args:DeclFuncArgs "]" _ retType:(":" _ Type _)? "{" body:ExprList "}" {
         name = name ? name[1] : "";
         retType = retType ? retType[2] : _ctx.getTypeVoid();
-        return new ExprDeclFunc(_ctx, name, _ctx.getTypeFunc(retType, []), body);
+        return new ExprDeclFunc(_ctx, name, _ctx.getTypeFunc(retType, args.map((arg) => arg.getType())), body);
     }
+
+DeclFuncArgs
+    = _ head:DeclFuncArg tail:(_ "," _ DeclFuncArg)* _ { return [head, ...tail.map((val) => val[3])]; }
+    / _ { return []; }
 
 DeclFuncArg
     = name:Id _ ":" _ type:Type { return new ExprDeclVar(_ctx, name, type); }

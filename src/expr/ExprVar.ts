@@ -36,7 +36,13 @@ export class ExprVar extends Expr {
     }
 
     build(builder: llvm.Builder): llvm.Value {
-        this._llvm = builder.createLoad(this.getVar().getLLVM());
+        const value = this.getVar().getLLVM();
+        if (value instanceof llvm.Function) {
+            this._llvm = value;
+        } else {
+            this._llvm = builder.createLoad(this.getVar().getLLVM());
+        }
+
         return this._llvm;
     }
 }

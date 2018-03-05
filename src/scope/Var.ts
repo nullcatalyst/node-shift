@@ -36,9 +36,13 @@ export class Var {
         /// TODO: validate
     }
 
-    build(builder: llvm.Builder): llvm.Value {
+    build(builder: llvm.Builder, llvmValue?: llvm.Value): llvm.Value {
         if (this._llvm === null) {
-            this._llvm = builder.createAlloca(this._type.getLLVM(), this._name);
+            if (llvmValue) {
+                this._llvm = llvmValue;
+            } else {
+                this._llvm = builder.createAlloca(this._type.getLLVM(), this._name);
+            }
         }
 
         return this._llvm;

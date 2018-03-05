@@ -10,12 +10,25 @@ const readFile = promisify(fs.readFile);
 
 readFile(path.resolve(process.argv[2]), "utf8")
     .then((content) => {
-        const ctx: Context = parse(content, {});
-        ctx.validate();
-        ctx.build();
-        ctx.optimize();
+        let ctx: Context = parse(content, {});
+        ctx.validate()
+            .initTarget()
+            .build()
+            .optimize();
+
         console.log(ctx.print());
         ctx.writeBitcodeToFile("out.bc");
+
+        const result = ctx.run("start");
+        console.log("start():", result.toInt());
+        result.free();
+
+        ctx.free();
+        ctx = null;
+
+        global.gc();
+
+        llvm.shutdown();
     })
     .catch((error: Error) => {
         // Something should probably be done to handle the error

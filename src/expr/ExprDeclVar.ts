@@ -8,8 +8,8 @@ import { Var } from "../scope/Var";
 
 export class ExprDeclVar extends Expr {
     private _name: string;
-    private _value: Expr;
     private _var: Var | null;
+    private _value: Expr;
 
     constructor(ctx: Context, name: string, value: Expr) {
         super(ctx);

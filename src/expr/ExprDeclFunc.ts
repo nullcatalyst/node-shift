@@ -1,21 +1,32 @@
 import * as llvm from "llvmc";
 
-import { Context } from "../scope/Context";
 import { Expr } from "./Expr";
+import { Context } from "../scope/Context";
+import { Scope } from "../scope/Scope";
+import { Var } from "../scope/Var";
 import { Type } from "../type/Type";
 import { TypeFunc } from "../type/TypeFunc";
-import { Scope } from "../scope/Scope";
 
 export class ExprDeclFunc extends Expr {
     private _name: string;
+    private _var: Var | null;
     private _exprs: Expr[];
 
     constructor(ctx: Context, name: string, type: TypeFunc, exprs: Expr[]) {
         super(ctx);
 
         this._name = name;
+        this._var = null;
         this._type = type;
         this._exprs = exprs;
+    }
+
+    getVar(): Var {
+        if (this._var === null) {
+            throw new Error();
+        }
+
+        return this._var;
     }
 
     getType(): TypeFunc {
@@ -23,7 +34,9 @@ export class ExprDeclFunc extends Expr {
     }
 
     validate(_scope: Scope) {
-        const scope = new Scope();
+        this._var = _scope.createVar(this._ctx, this._name, this._type);
+
+        const scope = new Scope(_scope);
         for (let expr of this._exprs) {
             expr.validate(scope);
         }
@@ -31,6 +44,7 @@ export class ExprDeclFunc extends Expr {
 
     build(builder: llvm.Builder): llvm.Value {
         const llvmFunc = this._ctx.createFunction(this._name, this.getType());
+        this._var.build(builder, llvmFunc);
 
         const entryBlock = llvmFunc.appendBasicBlock("entry");
         builder.positionAtEnd(entryBlock);

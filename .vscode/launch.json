@@ -12,7 +12,16 @@
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
-            ]
+            ],
+            "runtimeArgs": [
+                "--expose-gc"
+            ],
+            "args": [
+                "${workspaceFolder}/test.shift"
+            ],
+            "env": {
+                "LD_LIBRARY_PATH": "/usr/local/Cellar/llvm/5.0.1/lib"
+            }
         }
     ]
 }
